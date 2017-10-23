@@ -1,0 +1,28 @@
+extends layout
+
+block content
+  h1= title
+  form#submitform(method='get', action='javascript:sendKeyWords()')
+    div.input
+      span.label Keywords
+      input(type='text', id='keywords')
+    div.actions
+      input(type='submit')
+      
+  p#keywordsSplit
+
+  script(src="https://code.jquery.com/jquery-3.1.1.min.js")
+  script.
+    function sendKeyWords() {
+      let form = $('#submitform');
+      let query = form.serialize();
+      
+      //Replace spaces with commas and dangerous symbols
+      let keywords = $('#keywords').val().replace(/\s+/g,",");
+      keywords = keywords.replace(/(["´`'])/g, '');
+      
+      console.log(keywords);
+      $.get('/tweets', {keywords: keywords}, function(res) {
+        $('#keywordsSplit').text(res);
+      });
+    }

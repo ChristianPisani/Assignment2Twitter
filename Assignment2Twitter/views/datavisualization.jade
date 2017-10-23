@@ -1,0 +1,76 @@
+extends layout
+
+block content
+  h1 title
+  div.barchart
+    span.label Chart
+  
+  script(src="https://d3js.org/d3.v4.min.js")
+  script.
+    //Stub data
+    var data = [100, 200, 50, 45, 34];
+    
+    onload = function() {
+      LayoutChart();
+      
+      window.setInterval(function() {
+        UpdateChart();
+        UpdateData();
+        console.log(data);
+      }, 1000);
+    }
+    
+    //Randomly change columns
+    function UpdateData() {
+      data[Math.floor(Math.random() * data.length)] += 
+          Math.floor(Math.random() * 100);
+    }
+    
+    const height = 200;
+    const width = 300;
+    const barOffset = 20;
+    const barWidth = 30;
+  
+    function UpdateChart() {
+      let yScale = d3.scaleLinear()
+        .domain([0, d3.max(data)])
+        .range([0, height])
+      
+      d3.select('.barchart').selectAll('svg')
+        .selectAll('rect').data(data).transition()
+          .attr('width', barWidth)
+          .attr('height', function(d) { return yScale(d) })
+          .attr('x', function(d, i) {
+            return i * (barWidth + barOffset);
+          })
+          .attr('y', function(d) {
+            return height - yScale(d);  
+          })
+          .text(function(d) { return d })
+          .attr("fill", function(d) { return `hsl(${d}, 100%, 50%)` });
+    }
+    
+    function LayoutChart() {
+      let yScale = d3.scaleLinear()
+        .domain([0, d3.max(data)])
+        .range([0, height])
+      
+      d3.select('.barchart').append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .style('border', '1px solid black')
+        .style('background', '#dff0d8')
+        .selectAll('rect').data(data)
+        .enter().append('rect')
+          .attr('width', barWidth)
+          .attr('height', function(d) { return yScale(d) })
+          .attr('x', function(d, i) {
+            return i * (barWidth + barOffset);
+          })
+          .attr('y', function(d) {
+            return height - yScale(d);  
+          })
+          .text(function(d) { return d })
+          .attr("fill", function(d) { return `hsl(${d}, 100%, 50%)` });
+    }
+    
