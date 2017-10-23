@@ -1,14 +1,14 @@
 extends layout
 
 block content
-  h1 title
+  h1=title
   div.barchart
     span.label Chart
   
   script(src="https://d3js.org/d3.v4.min.js")
   script.
     //Stub data
-    var data = [100, 200, 50, 45, 34];
+    var data = [100, 200, 50, 45, 34, 10];
     
     onload = function() {
       LayoutChart();
