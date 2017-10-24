@@ -36,6 +36,7 @@ block content
         }
       });*/
       $.post(`/trackstreams`, {keywords: keywords}, function(res) {
-        window.location = "/twitterstream";
+        const k = keywords.replace(",", "");
+        window.location = `/twitterstream?keywords=${k}`;
       });  
     }

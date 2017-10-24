@@ -4,13 +4,13 @@ var router = express.Router();
 var keys = require('../keys');
 var aws = require('aws-sdk');
 
-
+var Map = require('collections/map');
 
 const Twitter = require('twitter-node-client').Twitter;
 const twitter = new Twitter(keys.twitterKey);
 
 const TwitterStream = require('node-tweet-stream');
-const twitterStream = new TwitterStream(keys.twitterStreamKey);
+const twitterStreams = new Map();
 
 const bucket = "tweetbucketcab432";
 
@@ -28,22 +28,32 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Twitter Search' });
 });
 
-twitterStream.on('tweet', function (tweet) {
-  tweetsReceived.push(tweet);
-})
-
-twitterStream.on('error', function (err) {
-  console.log('Oh no');
-})
-
 router.post('/trackstreams', function(req, res) {
   let keywords = req.param('keywords');
   keywords = keywords.replace(/(["´`'])/g, '');
   keywords = keywords.split(',');
 
+  let tStream = new TwitterStream(keys.twitterStreamKey);
+  tStream.tweets = [];
+  let streamName = "";
+
   for(i = 0; i < keywords.length; i++) {
-    twitterStream.track(keywords[i]);
+    tStream.track(keywords[i]);
+    streamName += keywords[i];
   }
+
+  if(!twitterStreams.has(streamName)) {
+    tStream.on('tweet', function (tweet) {
+      tStream.tweets.push(tweet);
+    });
+
+    tStream.on('error', function (err) {
+      console.log('Error in stream: ' + err);
+    });
+
+    twitterStreams.set(streamName, tStream);
+  }
+
   res.end();
 });
 
@@ -53,10 +63,20 @@ router.get('/twitterstream', function(req, res) {
 
 router.post('/twitterstream/:lastIndex', function(req, res) {
   const lastIndex = req.params.lastIndex;
+  let keywords = req.param('keywords');
+  keywords = keywords.replace(/(["´`'])/g, '');
+  keywords = keywords.replace(',', "");
+  console.log(keywords);
 
-  const tweets = tweetsReceived.slice(lastIndex, tweetsReceived.length-1);
-  console.log(tweets.length);
-  res.json({lastIndex: tweetsReceived.length-1, tweets: tweets});
+  const tweets = twitterStreams.get(keywords).tweets;
+
+  const slicedtweets = tweets.slice(lastIndex,
+    tweets.length);
+  console.log(slicedtweets);
+
+  let newLastIndex = tweets.length;
+
+  res.json({lastIndex: newLastIndex, tweets: slicedtweets});
   res.end();
 });
 
