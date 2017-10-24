@@ -1,40 +1,68 @@
 var express = require('express');
 var router = express.Router();
 
-var aws_keys = require('../aws_keys');
+var keys = require('../keys');
 var aws = require('aws-sdk');
 
-const twitterConfig = ({
-  "consumerKey": "LWCuMto6lz7lixA6dV4jHaFKO",
-  "consumerSecret": "38WGBgeGKCCce4gw1DVhImUIuNuJpW6Lyoz5VuOtwoZUPepXjJ",
-  "accessToken": "286845436-EZsgffpRk72RUGy40WVBSEAnjl6UYNmPbc1bMJ1M",
-  "accessTokenSecret": "JPT2G2lXHHkQUInR6ALsGgUpiAhqxsTDvPOrXkCJ3Rzr0"
-});
+
 
 const Twitter = require('twitter-node-client').Twitter;
-const twitter = new Twitter(twitterConfig);
+const twitter = new Twitter(keys.twitterKey);
+
+const TwitterStream = require('node-tweet-stream');
+const twitterStream = new TwitterStream(keys.twitterStreamKey);
 
 const bucket = "tweetbucketcab432";
 
 //Filestream
 const fs = require("fs");
 
-aws.config.update({
-    accessKeyId: aws_keys.access_key,
-    secretAccessKey: aws_keys.secret
-});
+aws.config.update(keys.awsKey);
 
 var s3 = new aws.S3();
+
+let tweetsReceived = [];
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Twitter Search' });
 });
 
+twitterStream.on('tweet', function (tweet) {
+  tweetsReceived.push(tweet);
+})
+
+twitterStream.on('error', function (err) {
+  console.log('Oh no');
+})
+
+router.post('/trackstreams', function(req, res) {
+  let keywords = req.param('keywords');
+  keywords = keywords.replace(/(["´`'])/g, '');
+  keywords = keywords.split(',');
+
+  for(i = 0; i < keywords.length; i++) {
+    twitterStream.track(keywords[i]);
+  }
+  res.end();
+});
+
+router.get('/twitterstream', function(req, res) {
+  res.render('twitterstream', { title: 'Twitter Stream '});
+});
+
+router.post('/twitterstream/:lastIndex', function(req, res) {
+  const lastIndex = req.params.lastIndex;
+
+  const tweets = tweetsReceived.slice(lastIndex, tweetsReceived.length-1);
+  console.log(tweets.length);
+  res.json({lastIndex: tweetsReceived.length-1, tweets: tweets});
+  res.end();
+});
+
 router.get('/tweets/:date', function(req, res) {
   let keywords = req.param('keywords');
   let date = req.params.date;
-  console.log(date);
 
   //Remove dangerous symbols
   keywords = keywords.replace(/(["´`'])/g, '');

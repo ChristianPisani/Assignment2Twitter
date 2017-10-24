@@ -22,7 +22,7 @@ block content
       let keywords = $('#keywords').val().replace(/\s+/g,",");
       keywords = keywords.replace(/(["´`'])/g, '');
       
-      let dateString = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+      /*let dateString = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
       
       $.get(`/tweets/${dateString}`, {keywords: keywords}, function(res) {
         date = new Date();
@@ -34,5 +34,8 @@ block content
             tweetsDiv.append('p').text(res[i][j].text);  
           }
         }
-      });
+      });*/
+      $.post(`/trackstreams`, {keywords: keywords}, function(res) {
+        window.location = "/twitterstream";
+      });  
     }

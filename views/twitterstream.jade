@@ -1,0 +1,29 @@
+extends layout
+
+block content
+  h1=title
+      
+  div#stream
+
+  script.
+    var lastindex = 0;
+  script. //Multiple script. because syntax highlighting bug
+    onload = function() {
+      window.setInterval(function() {
+        getTwitterStream();
+      }, 1000);
+    }
+    
+    function getTwitterStream() {
+      $.post(`/twitterstream/${lastindex}`, function(res) {
+        lastindex = res.lastIndex;
+        
+        var tweetsDiv = d3.select('#stream');
+      
+        const tweets = res.tweets;
+        console.log(tweets);
+        for(i = 0; i < tweets.length; i++) {
+          tweetsDiv.append('p').text(tweets[i].text);  
+        }
+      });
+    }
