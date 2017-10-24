@@ -4,6 +4,16 @@ var router = express.Router();
 var aws_keys = require('../aws_keys');
 var aws = require('aws-sdk');
 
+const twitterConfig = ({
+  "consumerKey": "LWCuMto6lz7lixA6dV4jHaFKO",
+  "consumerSecret": "38WGBgeGKCCce4gw1DVhImUIuNuJpW6Lyoz5VuOtwoZUPepXjJ",
+  "accessToken": "286845436-EZsgffpRk72RUGy40WVBSEAnjl6UYNmPbc1bMJ1M",
+  "accessTokenSecret": "JPT2G2lXHHkQUInR6ALsGgUpiAhqxsTDvPOrXkCJ3Rzr0"
+});
+
+const Twitter = require('twitter-node-client').Twitter;
+const twitter = new Twitter(twitterConfig);
+
 const bucket = "tweetbucketcab432";
 
 //Filestream
@@ -28,8 +38,31 @@ router.get('/tweets', function(req, res) {
   keywords = keywords.replace(/(["´`'])/g, '');
   keywords = keywords.split(',');
 
-  res.json(keywords);
-  res.end();
+  let tweets = [];
+
+  let processed = 0;
+
+  var receivedTweet = function() {
+    processed++;
+
+    if(processed >= keywords.length) {
+      res.json(tweets);
+      res.end();
+    }
+  }
+
+  for(i = 0; i < keywords.length; i++) {
+    twitter.getSearch({'q':`#${keywords[i]}`,'count': 100},
+    function(err, response, body) { //Error
+      console.log(err);
+      receivedTweet();
+    },
+    function(data) { //Success
+      console.log(JSON.parse(data).statuses);
+      tweets.push(JSON.parse(data).statuses);
+      receivedTweet();
+    });
+  }
 });
 
 router.get("/visualization", function(req, res) {

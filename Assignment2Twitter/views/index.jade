@@ -9,9 +9,8 @@ block content
     div.actions
       input(type='submit')
       
-  p#keywordsSplit
+  div#keywordsSplit
 
-  script(src="https://code.jquery.com/jquery-3.1.1.min.js")
   script.
     function sendKeyWords() {
       let form = $('#submitform');
@@ -23,6 +22,12 @@ block content
       
       console.log(keywords);
       $.get('/tweets', {keywords: keywords}, function(res) {
-        $('#keywordsSplit').text(res);
+        var tweetsDiv = d3.select('#keywordsSplit');
+          
+        for(i = 0; i < res.length; i++) {
+          for(j = 0; j < res[i].length; j++) {
+            tweetsDiv.append('p').text(res[i][j].text);  
+          }
+        }
       });
     }
