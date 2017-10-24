@@ -12,6 +12,8 @@ block content
   div#keywordsSplit
 
   script.
+    let date = new Date(0);
+  script.
     function sendKeyWords() {
       let form = $('#submitform');
       let query = form.serialize();
@@ -20,8 +22,11 @@ block content
       let keywords = $('#keywords').val().replace(/\s+/g,",");
       keywords = keywords.replace(/(["´`'])/g, '');
       
-      console.log(keywords);
-      $.get('/tweets', {keywords: keywords}, function(res) {
+      let dateString = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+      
+      $.get(`/tweets/${dateString}`, {keywords: keywords}, function(res) {
+        date = new Date();
+        
         var tweetsDiv = d3.select('#keywordsSplit');
           
         for(i = 0; i < res.length; i++) {

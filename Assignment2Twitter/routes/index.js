@@ -31,8 +31,10 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Twitter Search' });
 });
 
-router.get('/tweets', function(req, res) {
+router.get('/tweets/:date', function(req, res) {
   let keywords = req.param('keywords');
+  let date = req.params.date;
+  console.log(date);
 
   //Remove dangerous symbols
   keywords = keywords.replace(/(["´`'])/g, '');
@@ -52,7 +54,7 @@ router.get('/tweets', function(req, res) {
   }
 
   for(i = 0; i < keywords.length; i++) {
-    twitter.getSearch({'q':`#${keywords[i]}`,'count': 100},
+    twitter.getSearch({'q':`#${keywords[i]} since:${date}`,'count': 100},
     function(err, response, body) { //Error
       console.log(err);
       receivedTweet();
