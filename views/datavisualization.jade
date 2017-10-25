@@ -8,75 +8,116 @@ block content
   
   div.barchart
     span.label Chart
+    
+  span#words
+  
+  div#stream
   
   script.
     //Stub data
     var data = []; //Counts
-    var data_words = []; //Words
     var oldWords = [];
     var oldWordLength = 0;
+    
+    //tweets
+    var tweets = [];
     
     //Bar chart variables
     const height = 200;
     const width = 720;
     const barOffset = 20;
     const barWidth = 30;
+    var numColumns = 0;
+    const maxColumns = 10;
     
     onload = function() {
       LayoutChart();
       
-      window.setInterval(function() {        
-        UpdateChart();
-        const d = AnalyseData();
-        data = d.counts;
-        data_words = d.words;
-        console.log(data);
+      $.post(`/trackstreams`, {keywords: "Trump"}, function(res) {
+
+      });  
+      
+      window.setInterval(function() {     
+        //const input = $("textarea#inputdata").val().replace(/\s+/g," ").split(" ");   
+        getTwitterStream("Trump");
+        const d = AnalyseData(tweets);
+        data = d;
+        if(data.length > 0) {
+          UpdateChart();
+        }
       }, 1000);
     }
     
-    function fetchData() {
-      
+    var lastindex = 0;
+    function getTwitterStream(keywords) {
+      $.post(`/twitterstream/${lastindex}`, {keywords: keywords},
+        function(res) {
+          lastindex = res.lastIndex;
+          
+          var tweetsDiv = d3.select('#stream');
+        
+          const resTweets = res.tweets;
+          
+          for(i = 0; i < resTweets.length; i++) {
+            tweetsDiv.append('p').text(resTweets[i].text); 
+            tweets.push.apply(tweets, resTweets[i].text.replace(/\s+/g," ").split(" ")); 
+          }
+      });
     }
     
     //Counts number of words in text
-    function AnalyseData() {
-      const input = $("textarea#inputdata").val().replace(/\s+/g," ").split(" ");
+    //Must be moved to server...
+    function AnalyseData(input) {
       let words = [];
-      let counts = [];
+      let wordscounts = []
       
       for(i = 0; i < input.length; i++) {
-        if(!words.includes(input[i])) {
-          words.push(input[i]);
-          counts.push(1);
-        } else {
-          counts[words.indexOf(input[i])]++;
+        if(input[i] !== "") {
+          const word = input[i].toLowerCase();
+          if(!words.includes(word)) {
+            words.push(word);
+            wordscounts.push({word: word, count: 1});
+          } else {
+            wordscounts[words.indexOf(word)].count++;
+          }
         }
       }
-      console.log(input);
-      return {words: words, counts: counts};
+      wordscounts.sort(function(a,b) {
+        return b.count - a.count;
+      });
+      return wordscounts;
     }
     
     function AddColumns(count) {
       let columns = d3.selectAll('.barchart').selectAll('svg');
       for(i = 0; i < count; i++) {
-        columns.append('rect');
+        if(columnCount < maxColumns) {
+          columns.append('rect');
+          columnCount++;
+        }
       }
     }
     
     function RemoveColumns(count) {
       let columns = d3.selectAll('.barchart').selectAll('svg').select('rect');
       for(i = 0; i < count; i++) {
-        columns.remove()
+        columns.remove();
+        columnCount--;
       }
     }
   
     function UpdateChart() {
+      let counts = [];
+      for(i = 0; i < data.length; i++) {
+        counts.push(data[i].count);
+      }
+      
       let yScale = d3.scaleLinear()
-        .domain([0, d3.max(data)])
+        .domain([0, d3.max(counts)])
         .range([0, height])
         
       let colorScale = d3.scaleLinear()
-        .domain([0, d3.max(data)])
+        .domain([0, d3.max(counts)])
         .range([0, 100])
         
       columnCount = d3.select('.barchart').select('svg')
@@ -90,7 +131,7 @@ block content
       }
       
       d3.select('.barchart').selectAll('svg')
-        .selectAll('rect').data(data).transition()
+        .selectAll('rect').data(counts).transition()
           .attr('width', barWidth)
           .attr('height', function(d) { return yScale(d) })
           .attr('x', function(d, i) {
@@ -99,14 +140,27 @@ block content
           .attr('y', function(d) {
             return height - yScale(d);  
           })
-          .text(function(d) { return d })
+          .text(function(d) { return d.word })
           .attr("fill", function(d) { return `hsl(${colorScale(d)}, 100%, 50%)` });
+      
+      $('#words').empty();    
+      let wordsString = "";
+      for(i = 0; i < data.length; i++) {
+        wordsString += `${data[i].word}:${data[i].count} `;
+      }
+      console.log(wordsString);
+      $('#words').text(wordsString);
     }
     
     //First time setup of chart. Only run once on start.
     function LayoutChart() {
+      let counts = [];
+      for(i = 0; i < data.length; i++) {
+        counts.push(data[i].count);
+      }
+      
       let yScale = d3.scaleLinear()
-        .domain([0, d3.max(data)])
+        .domain([0, d3.max(counts)])
         .range([0, height])
       
       d3.select('.barchart').append('svg')
@@ -114,7 +168,7 @@ block content
         .attr('height', height)
         .style('border', '1px solid black')
         .style('background', '#dff0d8')
-        .selectAll('rect').data(data)
+        .selectAll('rect').data(counts)
         .enter().append('rect')
           .attr('width', barWidth)
           .attr('height', function(d) { return yScale(d) })
@@ -124,7 +178,7 @@ block content
           .attr('y', function(d) {
             return height - yScale(d);  
           })
-          .text(function(d) { return d })
+          .text(function(d) { return d.word })
           .attr("fill", function(d) { return `hsl(${d}%, 100%, 50%)` });
     }
     
