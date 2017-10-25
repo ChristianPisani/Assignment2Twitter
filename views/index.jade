@@ -18,9 +18,14 @@ block content
       let form = $('#submitform');
       let query = form.serialize();
       
-      //Replace spaces with commas and dangerous symbols
+      //Replace spaces with commas and remove dangerous symbols
       let keywords = $('#keywords').val().replace(/\s+/g,",");
       keywords = keywords.replace(/(["´`'])/g, '');
+      
+      $.post(`/trackstreams`, {keywords: keywords}, function(res) {
+        const streamName = keywords.replace(",", "");
+        window.location = `/twitterstream?keywords=${streamName}`;
+      });  
       
       /*let dateString = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
       
@@ -35,8 +40,4 @@ block content
           }
         }
       });*/
-      $.post(`/trackstreams`, {keywords: keywords}, function(res) {
-        const k = keywords.replace(",", "");
-        window.location = `/twitterstream?keywords=${k}`;
-      });  
     }

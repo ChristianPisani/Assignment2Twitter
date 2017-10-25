@@ -10,6 +10,7 @@ const Twitter = require('twitter-node-client').Twitter;
 const twitter = new Twitter(keys.twitterKey);
 
 const TwitterStream = require('node-tweet-stream');
+//Create a new stream for each unique query
 const twitterStreams = new Map();
 
 const bucket = "tweetbucketcab432";
@@ -18,16 +19,17 @@ const bucket = "tweetbucketcab432";
 const fs = require("fs");
 
 aws.config.update(keys.awsKey);
-
 var s3 = new aws.S3();
-
-let tweetsReceived = [];
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Twitter Search' });
 });
 
+/**
+* Add keywords to track
+* keywords - Sent with request
+*/
 router.post('/trackstreams', function(req, res) {
   let keywords = req.param('keywords');
   keywords = keywords.replace(/(["´`'])/g, '');
@@ -57,10 +59,18 @@ router.post('/trackstreams', function(req, res) {
   res.end();
 });
 
+/*
+* Render twitter stream page
+*/
 router.get('/twitterstream', function(req, res) {
   res.render('twitterstream', { title: 'Twitter Stream '});
 });
 
+/*
+* Get stream corresponding to the keywords written
+* Gets the tweets from the map, and only sends back tweets
+* that are newer than the last seen (client keeps track of this)
+*/
 router.post('/twitterstream/:lastIndex', function(req, res) {
   const lastIndex = req.params.lastIndex;
   let keywords = req.param('keywords');
@@ -80,6 +90,9 @@ router.post('/twitterstream/:lastIndex', function(req, res) {
   res.end();
 });
 
+/*
+* Basic twitter search, not used, but will keep it in for now
+*/
 router.get('/tweets/:date', function(req, res) {
   let keywords = req.param('keywords');
   let date = req.params.date;
@@ -115,10 +128,17 @@ router.get('/tweets/:date', function(req, res) {
   }
 });
 
+/*
+* Renders the page for bar chart. For testing.
+*/
 router.get("/visualization", function(req, res) {
   res.render('datavisualization', {title: 'Data'});
 });
 
+/*
+* Get objects from bucket.
+* Needs to be expanded.
+*/
 router.get("/persistence", function(req, res) {
   var params = {
     Bucket: bucket,
@@ -136,6 +156,10 @@ router.get("/persistence", function(req, res) {
   });
 });
 
+/*
+* Add objects to aws bucket.
+* Needs to be expanded.
+*/
 router.post("/persistence", function(req, res) {
   var params = {
     Body: "Test Twitter Text",

@@ -11,17 +11,22 @@ block content
   
   script.
     //Stub data
-    var data = [];
-    var data_words = [];
+    var data = []; //Counts
+    var data_words = []; //Words
     var oldWords = [];
     var oldWordLength = 0;
+    
+    //Bar chart variables
+    const height = 200;
+    const width = 720;
+    const barOffset = 20;
+    const barWidth = 30;
     
     onload = function() {
       LayoutChart();
       
       window.setInterval(function() {        
         UpdateChart();
-        //UpdateData();
         const d = AnalyseData();
         data = d.counts;
         data_words = d.words;
@@ -33,6 +38,7 @@ block content
       
     }
     
+    //Counts number of words in text
     function AnalyseData() {
       const input = $("textarea#inputdata").val().replace(/\s+/g," ").split(" ");
       let words = [];
@@ -49,17 +55,6 @@ block content
       console.log(input);
       return {words: words, counts: counts};
     }
-    
-    //Randomly change columns
-    function UpdateData() {
-      data[Math.floor(Math.random() * data.length)] += 
-          Math.floor(Math.random() * 100);
-    }
-    
-    const height = 200;
-    const width = 720;
-    const barOffset = 20;
-    const barWidth = 30;
     
     function AddColumns(count) {
       let columns = d3.selectAll('.barchart').selectAll('svg');
@@ -108,6 +103,7 @@ block content
           .attr("fill", function(d) { return `hsl(${colorScale(d)}, 100%, 50%)` });
     }
     
+    //First time setup of chart. Only run once on start.
     function LayoutChart() {
       let yScale = d3.scaleLinear()
         .domain([0, d3.max(data)])
