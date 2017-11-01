@@ -3,10 +3,8 @@ extends layout
 block content
     h1= title
     form#submitform(method='get', action='javascript:sendKeyWords()')
-        div.input
             span.label Keywords
             input(type='text', id='keywords')
-        div.actions
             input(type='submit')
 
     div#stat= statistics
