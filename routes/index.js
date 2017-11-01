@@ -29,8 +29,19 @@ setInterval(()=>{
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
-    res.render('index', {
-        title: 'Twitter Search'
+    s3.getObject(persistence, function (err, data) {
+
+        let statistics = data.Body.toString().split('\n');
+        let output = '';
+        for(let i in statistics){
+            output += statistics[i].split(/\s+/g)[0];
+            output += '\n';
+        }
+
+        res.render('index', {
+            title: 'Twitter Search',
+            statistics: output
+        });
     });
 });
 
