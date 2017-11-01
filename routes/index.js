@@ -1,27 +1,30 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 
-var keys = require('../keys');
-var aws = require('aws-sdk');
+const keys = require('../keys');
+const aws = require('aws-sdk');
 
-var Map = require('collections/map');
-
-const Twitter = require('twitter-node-client').Twitter;
-const twitter = new Twitter(keys.twitterKey);
+const Map = require('collections/map');
 
 const TwitterStream = require('node-tweet-stream');
 //Create a new stream for each unique query
 const twitterStreams = new Map();
 
-const bucket = "tweetbucketcab432";
-
-//Filestream
-const fs = require("fs");
+const persistence = {
+    Bucket: 'tweetbucketcab432',
+    Key: 'tweetkey.txt'
+};
 
 const ignoreWords = ['and', 'this', 'or', 'to', 'a', 'rt', 'is', 'in', 'of', 'if'];
 
 aws.config.update(keys.awsKey);
-var s3 = new aws.S3();
+const s3 = new aws.S3();
+
+const notPersisted = new Map();
+
+setInterval(()=>{
+    updateBucket();
+}, 10000);
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -39,6 +42,7 @@ router.post('/trackstreams', function (req, res) {
     keywords = keywords.replace(/(["´`'])/g, '');
 
     addStream(keywords);
+    updateKeywordStatistics(keywords);
     res.end();
 });
 
@@ -49,7 +53,7 @@ function addStream(keywords) {
         tStream.tweets = [];
 
         let split = keywords.split(',');
-        console.log(split);
+
         for (let i = 0; i < split.length; i++) {
             tStream.track(split[i]);
         }
@@ -100,12 +104,12 @@ router.post('/twitterstream/:lastIndex', function (req, res) {
         tweetsToString += slicedTweets[i].text;
     }
 
-    let wordcounts = AnalyseData(tweetsToString);
+    let wordCounts = AnalyseData(tweetsToString);
 
     res.json({
         lastIndex: newLastIndex,
         tweets: slicedTweets,
-        wordscounts: wordcounts
+        wordscounts: wordCounts
     });
     res.end();
 });
@@ -143,47 +147,6 @@ function AnalyseData(input) {
 }
 
 /*
- * Basic twitter search, not used, but will keep it in for now
- */
-router.get('/tweets/:date', function (req, res) {
-    let keywords = req.param('keywords');
-    let date = req.params.date;
-
-    //Remove dangerous symbols
-    keywords = keywords.replace(/(["´`'])/g, '');
-    keywords = keywords.split(',');
-
-    let tweets = [];
-
-    let processed = 0;
-
-    var receivedTweet = function () {
-        processed++;
-
-        if (processed >= keywords.length) {
-            res.json(tweets);
-            res.end();
-        }
-    }
-
-    for (i = 0; i < keywords.length; i++) {
-        twitter.getSearch({
-                'q': `#${keywords[i]}`,
-                'count': 100
-            },
-            function (err, response, body) { //Error
-                console.log(err);
-                receivedTweet();
-            },
-            function (data) { //Success
-                console.log(JSON.parse(data).statuses);
-                tweets.push(JSON.parse(data).statuses);
-                receivedTweet();
-            });
-    }
-});
-
-/*
  * Renders the page for bar chart. For testing.
  */
 router.get("/visualization", function (req, res) {
@@ -192,18 +155,75 @@ router.get("/visualization", function (req, res) {
     });
 });
 
+function updateKeywordStatistics(keywords) {
+    const split = keywords.split(',');
+
+    for (let i in split) {
+        let entry = notPersisted.get(split[i]);
+        if (entry) {
+            notPersisted.set(split[i], entry + 1);
+        } else {
+            notPersisted.set(split[i], 1);
+        }
+    }
+}
+
+function updateBucket() {
+
+    s3.getObject(persistence, (err, data) => {
+        if(err){
+            console.log(err.message);
+        }else{
+
+            const lines = data.Body.toString().split('\n');
+
+            let newBucket = "";
+
+            for (let i in lines) {
+                if(lines[i] === "")
+                    continue;
+
+                let line = lines[i].split(/\s+/g);
+                let entry = notPersisted.get(line[0]);
+
+                if (entry) {
+                    let newValue = Number(line[1]) + entry;
+                    newBucket += `${line[0]} ${newValue}\n`;
+                    notPersisted.delete(line[0]);
+                } else {
+                    newBucket += lines[i] + "\n";
+                }
+            }
+            notPersisted.forEach((v, k) =>{
+                newBucket += `${k} ${v}\n`;
+
+            });
+
+            notPersisted.clear();
+
+            const params = {
+                Body: newBucket,
+                Bucket: persistence.Bucket,
+                Key: persistence.Key,
+                ServerSideEncryption: "AES256"
+            };
+
+            s3.putObject(params, function (err, data) {
+                if (err) {
+                    console.log(err);
+                }
+            });
+        }
+    });
+}
+
 /*
  * Get objects from bucket.
  * Needs to be expanded.
  */
 router.get("/persistence", function (req, res) {
-    var params = {
-        Bucket: bucket,
-        Key: "tweetkey.txt"
-    };
-    s3.getObject(params, function (err, data) {
+    s3.getObject(persistence, function (err, data) {
         if (err) {
-            console.log(err, err.stack);
             res.write(err.message);
             res.end();
         } else {
@@ -213,15 +233,16 @@ router.get("/persistence", function (req, res) {
     });
 });
 
+
 /*
  * Add objects to aws bucket.
  * Needs to be expanded.
  */
 router.post("/persistence", function (req, res) {
-    var params = {
+    const params = {
         Body: req.param('content'),
-        Bucket: bucket,
-        Key: "tweetkey.txt",
+        Bucket: persistence.Bucket,
+        Key: persistence.Key,
         ServerSideEncryption: "AES256",
         Tagging: "key1=value1&key2=value2"
     };
