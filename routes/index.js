@@ -15,7 +15,8 @@ const persistence = {
     Key: 'tweetkey.txt'
 };
 
-const ignoreWords = ['and', 'this', 'or', 'to', 'a', 'rt', 'is', 'in', 'of', 'if'];
+const ignoreWords = ['and', 'this', 'or', 'to', 'a', 'rt', 'is', 'in', 'of', 'if',
+    'we', 'as', 'if', 'the', 'for', 'on', 'was', 'how'];
 
 aws.config.update(keys.awsKey);
 const s3 = new aws.S3();

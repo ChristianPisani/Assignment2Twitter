@@ -13,9 +13,6 @@ block content
 
     script.
         function sendKeyWords() {
-            let form = $('#submitform');
-            let query = form.serialize();
-
             //Replace spaces with commas and remove dangerous symbols
             let keywords = $('#keywords').val().replace(/\s+/g, ",");
             keywords = encodeURIComponent(keywords.replace(/(["´`'])/g, ''));
