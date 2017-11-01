@@ -1,46 +1,31 @@
 extends layout
 
 block content
-  h1= title
-  form#submitform(method='get', action='javascript:sendKeyWords()')
-    div.input
-      span.label Keywords
-      input(type='text', id='keywords')
-    div.actions
-      input(type='submit')
-      
-  div#keywordsSplit
+    h1= title
+    form#submitform(method='get', action='javascript:sendKeyWords()')
+        div.input
+            span.label Keywords
+            input(type='text', id='keywords')
+        div.actions
+            input(type='submit')
 
-  br
-  form(method='post', action='/persistence')
-    input(name='body')
-    input(type='submit')
+    div#keywordsSplit
 
-  script.
-    function sendKeyWords() {
-      let form = $('#submitform');
-      let query = form.serialize();
-      
-      //Replace spaces with commas and remove dangerous symbols
-      let keywords = $('#keywords').val().replace(/\s+/g,",");
-      keywords = keywords.replace(/(["´`'])/g, '');
-      
-      $.post(`/trackstreams`, {keywords: keywords}, function(res) {
-        const streamName = keywords.replace(",", "");
-        window.location = `/visualization?keywords=${streamName}`;
-      });
+    br
+    form(method='post', action='/persistence')
+        input(name='content')
+        input(type='submit')
 
-      /*let dateString = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+    script.
+        function sendKeyWords() {
+            let form = $('#submitform');
+            let query = form.serialize();
 
-      $.get(`/tweets/${dateString}`, {keywords: keywords}, function(res) {
-        date = new Date();
+            //Replace spaces with commas and remove dangerous symbols
+            let keywords = $('#keywords').val().replace(/\s+/g, ",");
+            keywords = encodeURIComponent(keywords.replace(/(["´`'])/g, ''));
 
-        var tweetsDiv = d3.select('#keywordsSplit');
-
-        for(i = 0; i < res.length; i++) {
-          for(j = 0; j < res[i].length; j++) {
-            tweetsDiv.append('p').text(res[i][j].text);
-          }
+            $.post(`/trackstreams`, {keywords: keywords}, function (res) {
+                window.location = `/visualization?keywords=${keywords}`;
+            });
         }
-      });*/
-    }

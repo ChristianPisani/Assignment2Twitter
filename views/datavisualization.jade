@@ -3,24 +3,24 @@ extends layout
 block content
   h1=title
   //p="Write words separated by spaces to generate columns for each word"
-  
+
   //textarea(id='inputdata', cols=40, rows=10)
-  
+
   div.barchart
     span.label Chart
-    
+
   span#words
-  
+
   div#stream
-  
+
   script.
     //Stub data
     var data = []; //Counts
     var dataWords = [];
-    
+
     //tweets
     var tweets = [];
-    
+
     //Bar chart variables
     const height = 200;
     const width = 720;
@@ -28,28 +28,29 @@ block content
     const barWidth = 30;
     var numColumns = 0;
     const maxColumns = 10;
-    
-    //From here: 
+
+    //From here:
     //https://stackoverflow.com/questions/19491336/get-url-parameter-jquery-or-how-to-get-query-string-values-in-js
     function getSearchParams(k){
       var p={};
-      location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v})
-      return k?p[k]:p;
+      location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v});
+      let resp = decodeURIComponent(k?p[k]:p);
+      return resp;
     }
-    
+
     onload = function() {
       const keywords = getSearchParams("keywords");
-      
+
       if(typeof(keywords) !== "undefined") {
         LayoutChart();
-      
-        window.setInterval(function() {     
-          //const input = $("textarea#inputdata").val().replace(/\s+/g," ").split(" ");   
+
+        window.setInterval(function() {
+          //const input = $("textarea#inputdata").val().replace(/\s+/g," ").split(" ");
           const oldData = data;
           getTwitterStream(keywords);
           //const d = AnalyseData(tweets);
-          //data = d;  
-        
+          //data = d;
+
           if(data.length > 1) {
             UpdateChart();
           }
@@ -59,24 +60,24 @@ block content
         $('#stream').prepend("<p>No keywords</p>");
       }
     }
-    
+
     var lastindex = 0;
     function getTwitterStream(keywords) {
       $.post(`/twitterstream/${lastindex}`, {keywords: keywords},
         function(res) {
           lastindex = res.lastIndex;
-          
+
           var tweetsDiv = d3.select('#stream');
-        
+
           const resTweets = res.tweets;
           const wordscounts = res.wordscounts;
-          
+
           for(i = 0; i < resTweets.length; i++) {
             $("#stream").prepend(`<p>${resTweets[i].text}</p>`);
             //const tweet = resTweets[i].text.replace(/\s+/g," ").split(" ");
-            //tweets.push.apply(tweets, tweet); 
+            //tweets.push.apply(tweets, tweet);
           }
-          
+
           for(i = 0; i < wordscounts.length; i++) {
             if(!dataWords.includes(wordscounts[i].word)) {
               dataWords.push(wordscounts[i].word);
@@ -87,13 +88,13 @@ block content
           }
       });
     }
-    
+
     //Counts number of words in text
     //Must be moved to server...
     function AnalyseData(input) {
       let words = [];
       let wordscounts = []
-      
+
       for(i = 0; i < input.length; i++) {
         if(input[i] !== "") {
           const word = input[i].toLowerCase();
@@ -110,7 +111,7 @@ block content
       });
       return wordscounts;
     }
-    
+
     function AddColumns(count) {
       let columns = d3.selectAll('.barchart').selectAll('svg');
       for(i = 0; i < count; i++) {
@@ -120,7 +121,7 @@ block content
         }
       }
     }
-    
+
     function RemoveColumns(count) {
       let columns = d3.selectAll('.barchart').selectAll('svg').select('rect');
       for(i = 0; i < count; i++) {
@@ -128,31 +129,31 @@ block content
         columnCount--;
       }
     }
-  
+
     function UpdateChart() {
       let counts = [];
       for(i = 0; i < data.length; i++) {
         counts.push(data[i].count);
       }
-      
+
       let yScale = d3.scaleLinear()
         .domain([0, d3.max(counts)])
         .range([0, height])
-        
+
       let colorScale = d3.scaleLinear()
         .domain([0, d3.max(counts)])
         .range([0, 100])
-        
+
       columnCount = d3.select('.barchart').select('svg')
         .selectAll('rect').size();
       console.log(columnCount + ":" + data.length-1);
       if(columnCount < data.length) {
         AddColumns(data.length - columnCount);
-      } 
+      }
       if(columnCount > data.length) {
         RemoveColumns(columnCount - data.length);
       }
-      
+
       d3.select('.barchart').selectAll('svg')
         .selectAll('rect').data(counts).transition()
           .attr('width', barWidth)
@@ -161,11 +162,11 @@ block content
             return i * (barWidth + barOffset);
           })
           .attr('y', function(d) {
-            return height - yScale(d);  
+            return height - yScale(d);
           })
           .attr("fill", function(d) { return `hsl(${colorScale(d)}, 100%, 50%)` });
-      
-      $('#words').empty();    
+
+      $('#words').empty();
       let wordsString = "";
       const num = data.length <= 10 ? data.length : 10;
       for(i = 0; i < num; i++) {
@@ -174,18 +175,18 @@ block content
       console.log(data);
       $('#words').text(wordsString);
     }
-    
+
     //First time setup of chart. Only run once on start.
     function LayoutChart() {
       let counts = [];
       for(i = 0; i < data.length; i++) {
         counts.push(data[i].count);
       }
-      
+
       let yScale = d3.scaleLinear()
         .domain([0, d3.max(counts)])
         .range([0, height])
-      
+
       d3.select('.barchart').append('svg')
         .attr('width', width)
         .attr('height', height)
@@ -199,7 +200,7 @@ block content
             return i * (barWidth + barOffset);
           })
           .attr('y', function(d) {
-            return height - yScale(d);  
+            return height - yScale(d);
           })
           .attr("fill", function(d) { return `hsl(${d}%, 100%, 50%)` });
     }

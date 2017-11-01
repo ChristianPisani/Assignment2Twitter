@@ -8,7 +8,7 @@ a {
 }
 
 #stream {
-  height: 100px;
-  overflow: scroll;
+  height: 250px;
+  overflow-y: scroll;
   border: 1px solid black;
 }

@@ -1,42 +1,42 @@
 extends layout
 
 block content
-  h1=title
-      
-  div#stream
+    h1=title
 
-  script.
-    var lastindex = 0;
-  script. //Multiple script. because syntax highlighting bug
-    onload = function() {
-      const keywords = getSearchParams("keywords");
-      
-      window.setInterval(function() {
-        getTwitterStream(keywords);
-      }, 4000);
-    }
-    
-    //From here: 
-    //https://stackoverflow.com/questions/19491336/get-url-parameter-jquery-or-how-to-get-query-string-values-in-js
-    function getSearchParams(k){
-      var p={};
-      location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v})
-      return k?p[k]:p;
-    }
-    
-    function getTwitterStream(keywords) {
-      console.log(keywords);
-      
-      $.post(`/twitterstream/${lastindex}`, {keywords: keywords},
-        function(res) {
-          lastindex = res.lastIndex;
-          
-          var tweetsDiv = d3.select('#stream');
-        
-          const tweets = res.tweets;
-          console.log(tweets);
-          for(i = 0; i < tweets.length; i++) {
-            tweetsDiv.append('p').text(tweets[i].text);  
-          }
-      });
-    }
+    div#stream
+
+    script.
+        var lastindex = 0;
+    script. //Multiple script. because syntax highlighting bug
+        onload = function () {
+            const keywords = getSearchParams("keywords");
+
+            window.setInterval(function () {
+                getTwitterStream(keywords);
+            }, 4000);
+        }
+
+        //From here:
+        //https://stackoverflow.com/questions/19491336/get-url-parameter-jquery-or-how-to-get-query-string-values-in-js
+        function getSearchParams(k) {
+            var p = {};
+            location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (s, k, v) {
+                p[k] = v
+            });
+            return decodeURIComponent(k ? p[k] : p);
+        }
+
+        function getTwitterStream(keywords) {
+            console.log(keywords);
+            $.post(`/twitterstream/${lastindex}`, {keywords: keywords},
+                function (res) {
+                    lastindex = res.lastIndex;
+
+                    var tweetsDiv = d3.select('#stream');
+
+                    const tweets = res.tweets;
+                    for (let i = 0; i < tweets.length; i++) {
+                        tweetsDiv.append('p').text(tweets[i].text);
+                    }
+                });
+        }
