@@ -18,6 +18,8 @@ const bucket = "tweetbucketcab432";
 //Filestream
 const fs = require("fs");
 
+const ignoreWords = ['and', 'this', 'or', 'to', 'a', 'rt', 'is', 'in', 'of', 'if'];
+
 aws.config.update(keys.awsKey);
 var s3 = new aws.S3();
 
@@ -113,9 +115,12 @@ function AnalyseData(input) {
 
   input = input.replace(/\s+/g," ").split(" ");
 
-  for (i = 0; i < input.length; i++) {
+  for (let i = 0; i < input.length; i++) {
     if (input[i] !== "") {
       const word = input[i].toLowerCase();
+      if(ignoreWords.includes(word))
+        continue;
+
       if (!words.includes(word)) {
         words.push(word);
         wordscounts.push({
@@ -195,7 +200,7 @@ router.get("/persistence", function(req, res) {
   s3.getObject(params, function(err, data) {
     if (err) {
       console.log(err, err.stack);
-      res.write("<h1>An error occurred</h1>");
+      res.write(err.message);
       res.end();
     } else {
       res.write(data.Body);
@@ -210,19 +215,18 @@ router.get("/persistence", function(req, res) {
  */
 router.post("/persistence", function(req, res) {
   var params = {
-    Body: "Test Twitter Text",
+    Body: req.param.body,
     Bucket: bucket,
     Key: "tweetkey.txt",
     ServerSideEncryption: "AES256",
     Tagging: "key1=value1&key2=value2"
   };
-  console.log(params);
+
   s3.putObject(params, function(err, data) {
     if (err) {
-      console.log(err, err.stack);
+      res.write(err.message);
       res.end();
     } else {
-      console.log(data);
       res.json(data);
       res.end();
     }

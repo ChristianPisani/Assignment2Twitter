@@ -11,8 +11,11 @@ block content
       
   div#keywordsSplit
 
-  script.
-    let date = new Date(0);
+  br
+  form(method='post', action='/persistence')
+    input(name='body')
+    input(type='submit')
+
   script.
     function sendKeyWords() {
       let form = $('#submitform');
@@ -25,18 +28,18 @@ block content
       $.post(`/trackstreams`, {keywords: keywords}, function(res) {
         const streamName = keywords.replace(",", "");
         window.location = `/visualization?keywords=${streamName}`;
-      });  
-      
+      });
+
       /*let dateString = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
-      
+
       $.get(`/tweets/${dateString}`, {keywords: keywords}, function(res) {
         date = new Date();
-        
+
         var tweetsDiv = d3.select('#keywordsSplit');
-          
+
         for(i = 0; i < res.length; i++) {
           for(j = 0; j < res[i].length; j++) {
-            tweetsDiv.append('p').text(res[i][j].text);  
+            tweetsDiv.append('p').text(res[i][j].text);
           }
         }
       });*/
