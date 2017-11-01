@@ -23,13 +23,15 @@ var s3 = new aws.S3();
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Twitter Search' });
+  res.render('index', {
+    title: 'Twitter Search'
+  });
 });
 
 /**
-* Add keywords to track
-* keywords - Sent with request
-*/
+ * Add keywords to track
+ * keywords - Sent with request
+ */
 router.post('/trackstreams', function(req, res) {
   let keywords = req.param('keywords');
   keywords = keywords.replace(/(["´`'])/g, '');
@@ -39,17 +41,17 @@ router.post('/trackstreams', function(req, res) {
   tStream.tweets = [];
   let streamName = "";
 
-  for(i = 0; i < keywords.length; i++) {
+  for (i = 0; i < keywords.length; i++) {
     tStream.track(keywords[i]);
     streamName += keywords[i];
   }
 
-  if(!twitterStreams.has(streamName)) {
-    tStream.on('tweet', function (tweet) {
+  if (!twitterStreams.has(streamName)) {
+    tStream.on('tweet', function(tweet) {
       tStream.tweets.push(tweet);
     });
 
-    tStream.on('error', function (err) {
+    tStream.on('error', function(err) {
       console.log('Error in stream: ' + err);
     });
 
@@ -60,39 +62,80 @@ router.post('/trackstreams', function(req, res) {
 });
 
 /*
-* Render twitter stream page
-*/
+ * Render twitter stream page
+ */
 router.get('/twitterstream', function(req, res) {
-  res.render('twitterstream', { title: 'Twitter Stream '});
+  res.render('twitterstream', {
+    title: 'Twitter Stream '
+  });
 });
 
 /*
-* Get stream corresponding to the keywords written
-* Gets the tweets from the map, and only sends back tweets
-* that are newer than the last seen (client keeps track of this)
-*/
+ * Get stream corresponding to the keywords written
+ * Gets the tweets from the map, and only sends back tweets
+ * that are newer than the last seen (client keeps track of this)
+ */
 router.post('/twitterstream/:lastIndex', function(req, res) {
   const lastIndex = req.params.lastIndex;
   let keywords = req.param('keywords');
   keywords = keywords.replace(/(["´`'])/g, '');
   keywords = keywords.replace(',', "");
-  console.log(keywords);
 
   const tweets = twitterStreams.get(keywords).tweets;
+  console.log(tweets);
 
   const slicedtweets = tweets.slice(lastIndex,
     tweets.length);
-  console.log(slicedtweets);
 
   let newLastIndex = tweets.length;
 
-  res.json({lastIndex: newLastIndex, tweets: slicedtweets});
+  let tweetsToString = "";
+  for(i = 0; i < slicedtweets.length; i++) {
+    tweetsToString += slicedtweets[i].text;
+  }
+
+  let wordcounts = AnalyseData(tweetsToString);
+
+  res.json({
+    lastIndex: newLastIndex,
+    tweets: slicedtweets,
+    wordscounts: wordcounts
+  });
   res.end();
 });
 
 /*
-* Basic twitter search, not used, but will keep it in for now
+* Count words in string
 */
+function AnalyseData(input) {
+  let words = [];
+  let wordscounts = [];
+
+  input = input.replace(/\s+/g," ").split(" ");
+
+  for (i = 0; i < input.length; i++) {
+    if (input[i] !== "") {
+      const word = input[i].toLowerCase();
+      if (!words.includes(word)) {
+        words.push(word);
+        wordscounts.push({
+          word: word,
+          count: 1
+        });
+      } else {
+        wordscounts[words.indexOf(word)].count++;
+      }
+    }
+  }
+  wordscounts.sort(function(a, b) {
+    return b.count - a.count;
+  });
+  return wordscounts;
+}
+
+/*
+ * Basic twitter search, not used, but will keep it in for now
+ */
 router.get('/tweets/:date', function(req, res) {
   let keywords = req.param('keywords');
   let date = req.params.date;
@@ -108,37 +151,42 @@ router.get('/tweets/:date', function(req, res) {
   var receivedTweet = function() {
     processed++;
 
-    if(processed >= keywords.length) {
+    if (processed >= keywords.length) {
       res.json(tweets);
       res.end();
     }
   }
 
-  for(i = 0; i < keywords.length; i++) {
-    twitter.getSearch({'q':`#${keywords[i]} since:${date}`,'count': 100},
-    function(err, response, body) { //Error
-      console.log(err);
-      receivedTweet();
-    },
-    function(data) { //Success
-      console.log(JSON.parse(data).statuses);
-      tweets.push(JSON.parse(data).statuses);
-      receivedTweet();
-    });
+  for (i = 0; i < keywords.length; i++) {
+    twitter.getSearch({
+        'q': `#${keywords[i]}`,
+        'count': 100
+      },
+      function(err, response, body) { //Error
+        console.log(err);
+        receivedTweet();
+      },
+      function(data) { //Success
+        console.log(JSON.parse(data).statuses);
+        tweets.push(JSON.parse(data).statuses);
+        receivedTweet();
+      });
   }
 });
 
 /*
-* Renders the page for bar chart. For testing.
-*/
+ * Renders the page for bar chart. For testing.
+ */
 router.get("/visualization", function(req, res) {
-  res.render('datavisualization', {title: 'Data'});
+  res.render('datavisualization', {
+    title: 'Data'
+  });
 });
 
 /*
-* Get objects from bucket.
-* Needs to be expanded.
-*/
+ * Get objects from bucket.
+ * Needs to be expanded.
+ */
 router.get("/persistence", function(req, res) {
   var params = {
     Bucket: bucket,
@@ -157,9 +205,9 @@ router.get("/persistence", function(req, res) {
 });
 
 /*
-* Add objects to aws bucket.
-* Needs to be expanded.
-*/
+ * Add objects to aws bucket.
+ * Needs to be expanded.
+ */
 router.post("/persistence", function(req, res) {
   var params = {
     Body: "Test Twitter Text",

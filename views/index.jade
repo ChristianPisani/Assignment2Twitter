@@ -24,7 +24,7 @@ block content
       
       $.post(`/trackstreams`, {keywords: keywords}, function(res) {
         const streamName = keywords.replace(",", "");
-        window.location = `/twitterstream?keywords=${streamName}`;
+        window.location = `/visualization?keywords=${streamName}`;
       });  
       
       /*let dateString = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;

@@ -2,9 +2,9 @@ extends layout
 
 block content
   h1=title
-  p="Write words separated by spaces to generate columns for each word"
+  //p="Write words separated by spaces to generate columns for each word"
   
-  textarea(id='inputdata', cols=40, rows=10)
+  //textarea(id='inputdata', cols=40, rows=10)
   
   div.barchart
     span.label Chart
@@ -16,8 +16,7 @@ block content
   script.
     //Stub data
     var data = []; //Counts
-    var oldWords = [];
-    var oldWordLength = 0;
+    var dataWords = [];
     
     //tweets
     var tweets = [];
@@ -30,22 +29,35 @@ block content
     var numColumns = 0;
     const maxColumns = 10;
     
+    //From here: 
+    //https://stackoverflow.com/questions/19491336/get-url-parameter-jquery-or-how-to-get-query-string-values-in-js
+    function getSearchParams(k){
+      var p={};
+      location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v})
+      return k?p[k]:p;
+    }
+    
     onload = function() {
-      LayoutChart();
+      const keywords = getSearchParams("keywords");
       
-      $.post(`/trackstreams`, {keywords: "Trump"}, function(res) {
-
-      });  
+      if(typeof(keywords) !== "undefined") {
+        LayoutChart();
       
-      window.setInterval(function() {     
-        //const input = $("textarea#inputdata").val().replace(/\s+/g," ").split(" ");   
-        getTwitterStream("Trump");
-        const d = AnalyseData(tweets);
-        data = d;
-        if(data.length > 0) {
-          UpdateChart();
-        }
-      }, 1000);
+        window.setInterval(function() {     
+          //const input = $("textarea#inputdata").val().replace(/\s+/g," ").split(" ");   
+          const oldData = data;
+          getTwitterStream(keywords);
+          //const d = AnalyseData(tweets);
+          //data = d;  
+        
+          if(data.length > 1) {
+            UpdateChart();
+          }
+        }, 1000);
+      } else {
+        console.log("Error");
+        $('#stream').prepend("<p>No keywords</p>");
+      }
     }
     
     var lastindex = 0;
@@ -57,10 +69,21 @@ block content
           var tweetsDiv = d3.select('#stream');
         
           const resTweets = res.tweets;
+          const wordscounts = res.wordscounts;
           
           for(i = 0; i < resTweets.length; i++) {
-            tweetsDiv.append('p').text(resTweets[i].text); 
-            tweets.push.apply(tweets, resTweets[i].text.replace(/\s+/g," ").split(" ")); 
+            $("#stream").prepend(`<p>${resTweets[i].text}</p>`);
+            //const tweet = resTweets[i].text.replace(/\s+/g," ").split(" ");
+            //tweets.push.apply(tweets, tweet); 
+          }
+          
+          for(i = 0; i < wordscounts.length; i++) {
+            if(!dataWords.includes(wordscounts[i].word)) {
+              dataWords.push(wordscounts[i].word);
+              data.push(wordscounts[i]);
+            } else {
+              data[dataWords.indexOf(wordscounts[i].word)].count += wordscounts[i].count;
+            }
           }
       });
     }
@@ -140,15 +163,15 @@ block content
           .attr('y', function(d) {
             return height - yScale(d);  
           })
-          .text(function(d) { return d.word })
           .attr("fill", function(d) { return `hsl(${colorScale(d)}, 100%, 50%)` });
       
       $('#words').empty();    
       let wordsString = "";
-      for(i = 0; i < data.length; i++) {
+      const num = data.length <= 10 ? data.length : 10;
+      for(i = 0; i < num; i++) {
         wordsString += `${data[i].word}:${data[i].count} `;
       }
-      console.log(wordsString);
+      console.log(data);
       $('#words').text(wordsString);
     }
     
@@ -178,7 +201,6 @@ block content
           .attr('y', function(d) {
             return height - yScale(d);  
           })
-          .text(function(d) { return d.word })
           .attr("fill", function(d) { return `hsl(${d}%, 100%, 50%)` });
     }
     
